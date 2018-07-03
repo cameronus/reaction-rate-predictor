@@ -27,7 +27,7 @@ testing_y = []
 
 for reaction_file, numer_file, denom_file in zip(sorted(glob.iglob(data_dir + '/reactdict_NPT*.txt')), sorted(glob.iglob(data_dir + '/numer*.txt')), sorted(glob.iglob(data_dir + '/denom*.txt'))):
     print(reaction_file, numer_file, denom_file)
-    with open(reaction_file, 'r') as file: reactions += [reaction.split(': ')[1] for reaction in file.read().split('\n')[:-1]]
+    with open(reaction_file, 'r') as file: reactions += [reaction.split(': ')[1].strip() for reaction in file.read().split('\n')[:-1]]
     with open(numer_file, 'r') as file: numerators = np.concatenate([numerators, np.fromstring(file.read(), dtype=np.float64, sep='\n')])
     with open(denom_file, 'r') as file: denominators = np.concatenate([denominators, np.fromstring(file.read(), dtype=np.float64, sep='\n')])
     print(len(reactions), len(numerators), len(denominators))
@@ -37,6 +37,7 @@ print('----------------------------------------')
 counts = Counter(reactions)
 for rxn in reactions:
     rxns[rxn] = [0, 0]
+    print(rxn)
 for index, rxn in enumerate(reactions):
     if (counts[rxn] == 6) and numerators[index] != 0.0 and denominators[index] != 0.0:
         rxns[rxn][0] += numerators[index]
@@ -53,7 +54,8 @@ for rxn, rate in rxns.items():
 with open('features.out', 'r') as file: features = [x.split('\n') for x in file.read().split('----------------------------------------') if x != '']
 for feature in features:
     frame = feature[1].split(': ')[1]
-    rxn = feature[2].split(': ')[1][:-2]
+    rxn = feature[2].split(': ')[1].strip()
+    print(rxn)
     # print(frame)
     if rxn in rxns:
         if feature_reacs.count(rxn) != 0:
