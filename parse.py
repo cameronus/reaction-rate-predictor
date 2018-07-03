@@ -3,6 +3,7 @@ from collections import Counter
 from sklearn.neural_network import MLPRegressor
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import mean_squared_error
+from sklearn.metrics import r2_score
 from sklearn import svm
 import matplotlib.pyplot as plt
 import glob
@@ -79,6 +80,13 @@ for feature in features:
         print('Not found in reaction dictionary')
     # print(feats)
 
+# all_rates = np.log10(training_y + testing_y)
+# all_rates -= all_rates.min()
+# all_rates *= 1.0/all_rates.max()
+# print(all_rates)
+# plt.hist(all_rates, 50, normed=1, facecolor='green', alpha=0.75)
+# plt.show(block=True)
+
 training_x = np.asarray(training_x)
 training_y = np.asarray(training_y)
 testing_x = np.asarray(testing_x)
@@ -91,7 +99,7 @@ print(len(testing_x))
 
 # print(training_x[0], training_y[0])
 
-regressor = MLPRegressor( # lbfgs/adam
+regressor = MLPRegressor( # lbfgs/adam alpha=0.001
     hidden_layer_sizes=(1000,), activation='relu', solver='lbfgs', alpha=0.001, batch_size='auto',
     learning_rate='constant', learning_rate_init=0.001, power_t=0.5, max_iter=1000, shuffle=True,
     random_state=0, tol=0.0001, verbose=False, warm_start=False, momentum=0.9, nesterovs_momentum=True,
@@ -112,9 +120,10 @@ print('In-sample Actual:')
 print(training_y)
 print('In-sample Predicted:')
 print(in_sample)
-print('In-sample Score:')
-print(regressor.score(training_x, training_y))
+print('In-sample MSE:')
 print(mean_squared_error(training_y, in_sample))
+print('In-sample R2:')
+print(r2_score(training_y, in_sample))
 
 print()
 
@@ -122,6 +131,7 @@ print('Out-of-sample Actual:')
 print(testing_y)
 print('Out-of-sample Predicted:')
 print(out_of_sample)
-print('Out-of-sample Score:')
-print(regressor.score(testing_x, testing_y))
+print('Out-of-sample MSE:')
 print(mean_squared_error(testing_y, out_of_sample))
+print('Out-of-sample R2:')
+print(r2_score(testing_y, out_of_sample))
