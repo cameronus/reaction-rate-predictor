@@ -1,10 +1,13 @@
 import numpy as np
 from collections import Counter
 from sklearn.neural_network import MLPRegressor
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import mean_squared_error
+from sklearn import svm
 import matplotlib.pyplot as plt
 import glob
 
-np.set_printoptions(linewidth=150)
+np.set_printoptions(linewidth=150, precision=3)
 
 data_dir = 'methane-data'
 
@@ -70,18 +73,45 @@ for feature in features:
         print('Not found in reaction dictionary')
     # print(feats)
 
+training_x = np.asarray(training_x)
+training_y = np.asarray(training_y)
+testing_x = np.asarray(testing_x)
+testing_y = np.asarray(testing_y)
+
 print(len(training_x))
 print(len(testing_x))
 
-x = np.array(training_x)
-y = np.array(training_y)
-
-print(x[0], y[0])
+print(training_x[0], training_y[0])
 
 regressor = MLPRegressor( # lbfgs/adam
-    hidden_layer_sizes=(1000,), activation='relu', solver='adam', alpha=0.001, batch_size='auto',
-    learning_rate='constant', learning_rate_init=0.01, power_t=0.5, max_iter=1000, shuffle=True,
+    hidden_layer_sizes=(1000,), activation='relu', solver='lbfgs', alpha=0.001, batch_size='auto',
+    learning_rate='constant', learning_rate_init=0.001, power_t=0.5, max_iter=1000, shuffle=True,
     random_state=0, tol=0.0001, verbose=False, warm_start=False, momentum=0.9, nesterovs_momentum=True,
     early_stopping=False, validation_fraction=0.1, beta_1=0.9, beta_2=0.999, epsilon=1e-08)
+n = regressor.fit(training_x, training_y)
 
-n = regressor.fit(x, y)
+# regressor = svm.SVR(C=1.0, cache_size=200, coef0=0.0, degree=3, epsilon=0.1, gamma='auto', kernel='rbf', max_iter=-1, shrinking=True, tol=0.001, verbose=False)
+# n = regressor.fit(training_x, training_y)
+
+in_sample = regressor.predict(training_x)
+out_of_sample = regressor.predict(testing_x)
+
+print()
+
+print('In-sample Actual:')
+print(training_y)
+print('In-sample Predicted:')
+print(in_sample)
+print('In-sample Score:')
+print(regressor.score(training_x, training_y))
+print(mean_squared_error(training_y, in_sample))
+
+print()
+
+print('Out-of-sample Actual:')
+print(testing_y)
+print('Out-of-sample Predicted:')
+print(out_of_sample)
+print('Out-of-sample Score:')
+print(regressor.score(testing_x, testing_y))
+print(mean_squared_error(testing_y, out_of_sample))
