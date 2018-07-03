@@ -17,6 +17,8 @@ denominators = []
 
 rxns = {}
 
+feature_reacs = []
+
 training_x = []
 training_y = []
 testing_x = []
@@ -53,9 +55,13 @@ for feature in features:
     rxn = feature[2].split(': ')[1][:-2]
     # print(frame)
     if rxn in rxns:
+        if feature_reacs.count(rxn) != 0:
+            print('Not unique')
+            continue
+        feature_reacs.append(rxn)
         feats = [[int(y) for y in x.split(' ') if y != ''] for x in feature[4:8]]
         rate = rxns[rxn]
-        # print(rxn)
+        print(rxn)
         # print(rate)
         # for row in feats:
         #     for feat in row:
@@ -63,7 +69,7 @@ for feature in features:
         #     print()
         feats = np.concatenate(feats).ravel()
         print(feats)
-        if len(training_x) < 40:
+        if len(training_x) < 10:
             training_x.append(feats)
             training_y.append(rate)
         else:
@@ -78,10 +84,12 @@ training_y = np.asarray(training_y)
 testing_x = np.asarray(testing_x)
 testing_y = np.asarray(testing_y)
 
+print()
+
 print(len(training_x))
 print(len(testing_x))
 
-print(training_x[0], training_y[0])
+# print(training_x[0], training_y[0])
 
 regressor = MLPRegressor( # lbfgs/adam
     hidden_layer_sizes=(1000,), activation='relu', solver='lbfgs', alpha=0.001, batch_size='auto',
@@ -92,6 +100,8 @@ n = regressor.fit(training_x, training_y)
 
 # regressor = svm.SVR(C=1.0, cache_size=200, coef0=0.0, degree=3, epsilon=0.1, gamma='auto', kernel='rbf', max_iter=-1, shrinking=True, tol=0.001, verbose=False)
 # n = regressor.fit(training_x, training_y)
+
+# dropout
 
 in_sample = regressor.predict(training_x)
 out_of_sample = regressor.predict(testing_x)
