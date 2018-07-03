@@ -43,13 +43,17 @@ for index, rxn in enumerate(reactions):
         rxns[rxn][0] += numerators[index]
         rxns[rxn][1] += denominators[index]
 
+for rxn in list(rxns):
+    rate = rxns[rxn]
+    if rate[0] == 0 or rate[1] == 0:
+        del rxns[rxn]
+
 for rxn, rate in rxns.items():
-    if rate[0] > 0 and rate[1] > 0:
-        # print(sum(rate[0]), sum(rate[1]))
-        rate = (rate[0] / rate[1]) / 0.012
-        rxns[rxn] = rate
-        # print(rxn)
-        # print(rate)
+    # print(sum(rate[0]), sum(rate[1]))
+    rate = (rate[0] / rate[1]) / 0.012
+    rxns[rxn] = rate
+    # print(rxn)
+    # print(rate)
 
 with open('features.out', 'r') as file: features = [x.split('\n') for x in file.read().split('----------------------------------------') if x != '']
 for feature in features:
@@ -72,7 +76,7 @@ for feature in features:
         #     print()
         feats = np.concatenate(feats).ravel()
         print(feats)
-        if len(training_x) < 10:
+        if len(training_x) < 24:
             training_x.append(feats)
             training_y.append(rate)
         else:
@@ -89,15 +93,17 @@ for feature in features:
 # plt.hist(all_rates, 50, normed=1, facecolor='green', alpha=0.75)
 # plt.show(block=True)
 
+print(len(training_x))
+print(len(testing_x))
+
+print(training_y)
+
 training_x = np.asarray(training_x)
 training_y = np.asarray(training_y)
 testing_x = np.asarray(testing_x)
 testing_y = np.asarray(testing_y)
 
 print()
-
-print(len(training_x))
-print(len(testing_x))
 
 # print(training_x[0], training_y[0])
 
