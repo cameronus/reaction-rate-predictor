@@ -212,7 +212,8 @@ print()
 print('Problematic reactions (difference between actual and predicted greater than or equal to 0.22):')
 # indices of problematic rxns in testing data
 # problematic = [0, 1, 2, 7, 8, 10, 11, 14, 15, 17, 18, 19, 25, 26, 27, 28, 30, 31, 38, 44, 46, 48, 49, 52, 56, 57, 60, 68, 69, 72, 74, 79, 83, 84, 91, 93, 96, 101, 105, 114, 115, 121, 122, 123, 131]
-problematic = [0, 8, 30, 31, 52, 56, 74, 93, 105, 110]
+# problematic = [0, 8, 30, 31, 52, 56, 74, 93, 105, 110]
+problematic = [0, 2, 3, 8, 18, 19, 20, 21, 24, 25, 26, 27, 28, 30, 40, 48, 52, 54, 55, 56, 57, 60, 62, 68, 74, 82, 83, 84, 91, 93, 105, 106, 107, 110, 114, 115, 119, 122]
 for d in all_data:
     for f in problematic:
         if d['index'] == f and d['partition'] == 'testing':
