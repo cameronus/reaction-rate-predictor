@@ -15,6 +15,7 @@ min_occurences = 2 # minimum occurences in reaction dictionaries to be considere
 logarithmize_rates = True # whether to log10 rates
 normalize_rates = True # whether to normalize rates between 0 and 1
 num_testing = 134 # number of samples to reserve for testing
+eliminate_dup_feats = False # ignore reactions with the same feature set
 
 # min_occurences = 2
 # num_testing = 134
@@ -26,6 +27,7 @@ denominators = []
 rxns = {}
 
 feature_reacs = []
+feature_feats = []
 
 all_data = []
 
@@ -76,13 +78,18 @@ for rxn, rate in rxns.items():
 with open('features.out', 'r') as file: features = [x.split('\n') for x in file.read().split('----------------------------------------') if x != '']
 for feature in features:
     rxn = feature[2].split(': ')[1].strip()
-    if feature_reacs.count(rxn) != 0:
+    if eliminate_dup_feats:
+        feats = [[int(y) for y in x.split(' ') if y != ''] for x in feature[4:8]]
+    if feature_reacs.count(rxn) != 0 or (eliminate_dup_feats and feature_feats.count(feats) != 0):
         print('Not unique')
         continue
     if rxn in rxns:
         feature_reacs.append(rxn)
+        if eliminate_dup_feats:
+            feature_feats.append(feats)
         frame = feature[1].split(': ')[1]
-        feats = [[int(y) for y in x.split(' ') if y != ''] for x in feature[4:8]]
+        if not eliminate_dup_feats:
+            feats = [[int(y) for y in x.split(' ') if y != ''] for x in feature[4:8]]
         rate = rxns[rxn]
         # print(frame)
         print(rxn)
@@ -94,7 +101,8 @@ for feature in features:
         feats = np.concatenate(feats).ravel()
         print(feats)
         # print('Rate:', rate)
-        if len(testing_x) >= num_testing:
+        is_training_data = len(testing_x) >= num_testing
+        if is_training_data:
             training_x.append(feats)
             training_y.append(rate)
             index = len(training_x) - 1
@@ -107,7 +115,7 @@ for feature in features:
             'reaction': rxn,
             'features': feats,
             'rate': rate,
-            'partition': 'training' if len(testing_x) >= num_testing else 'testing',
+            'partition': 'training' if is_training_data else 'testing',
             'index': index
         })
     else:
@@ -118,6 +126,7 @@ for feature in features:
 all_rates = normalize(training_y + testing_y)
 plt.figure(0)
 plt.hist(all_rates, 50, normed=1, facecolor='green', alpha=0.75)
+plt.suptitle('Rate Histogram')
 
 print('-------------------------------------')
 print('Total Reactions:', len(features))
@@ -146,7 +155,7 @@ np.savetxt('testing_y.csv', testing_y, delimiter=',')
 print('> Training model')
 
 regressor = MLPRegressor( # lbfgs/adam alpha=0.001
-    hidden_layer_sizes=(2000), activation='relu', solver='lbfgs', alpha=0.001, batch_size='auto',
+    hidden_layer_sizes=(150,150,150,150,), activation='relu', solver='lbfgs', alpha=0.001, batch_size='auto',
     learning_rate='constant', learning_rate_init=0.001, power_t=0.5, max_iter=1000, shuffle=True,
     random_state=0, tol=0.0001, verbose=False, warm_start=False, momentum=0.9, nesterovs_momentum=True,
     early_stopping=False, validation_fraction=0.1, beta_1=0.9, beta_2=0.999, epsilon=1e-08)
@@ -176,6 +185,9 @@ print(r2_score(training_y, in_sample))
 plt.figure(1)
 plt.scatter(training_y, in_sample)
 plt.plot([0,1], [0,1])
+plt.suptitle('In-sample Test')
+plt.xlabel('Actual Rate')
+plt.ylabel('Predicted Rate')
 
 print()
 
@@ -193,6 +205,9 @@ print(r2_score(testing_y, out_of_sample))
 plt.figure(2)
 plt.scatter(testing_y, out_of_sample)
 plt.plot([0,1], [0,1])
+plt.suptitle('Out-of-sample Test')
+plt.xlabel('Actual Rate')
+plt.ylabel('Predicted Rate')
 
 print()
 
@@ -206,14 +221,15 @@ for a in all_data:
             print('-----')
             print(a['reaction'])
             print(b['reaction'])
+            print(a['features'])
 
 print()
 
-print('Problematic reactions (difference between actual and predicted greater than or equal to 0.22):')
+print('Problematic reactions (difference between actual and predicted greater than or equal to a certain cutoff):')
 # indices of problematic rxns in testing data
 # problematic = [0, 1, 2, 7, 8, 10, 11, 14, 15, 17, 18, 19, 25, 26, 27, 28, 30, 31, 38, 44, 46, 48, 49, 52, 56, 57, 60, 68, 69, 72, 74, 79, 83, 84, 91, 93, 96, 101, 105, 114, 115, 121, 122, 123, 131]
 # problematic = [0, 8, 30, 31, 52, 56, 74, 93, 105, 110]
-problematic = [0, 2, 3, 8, 18, 19, 20, 21, 24, 25, 26, 27, 28, 30, 40, 48, 52, 54, 55, 56, 57, 60, 62, 68, 74, 82, 83, 84, 91, 93, 105, 106, 107, 110, 114, 115, 119, 122]
+problematic = [0, 8, 13, 18, 19, 24, 25, 26, 30, 32, 40, 48, 49, 52, 56, 58, 60, 62, 68, 72, 74, 83, 84, 91, 93, 95, 101, 105, 106, 107, 110, 114, 115, 122]
 for d in all_data:
     for f in problematic:
         if d['index'] == f and d['partition'] == 'testing':
