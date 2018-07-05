@@ -12,8 +12,12 @@ np.set_printoptions(linewidth=150, suppress=True, precision=6)
 
 data_dir = 'methane-data' # directory in which MD data is stored
 min_occurences = 2 # minimum occurences in reaction dictionaries to be considered
-normalize_rates = True # whether to log10 rates and normalize them between 0 and 1
-num_testing = 40 # number of samples to reserve for testing
+logarithmize_rates = True # whether to log10 rates
+normalize_rates = True # whether to normalize rates between 0 and 1
+num_testing = 134 # number of samples to reserve for testing
+
+# min_occurences = 2
+# num_testing = 134
 
 reactions = []
 numerators = []
@@ -23,15 +27,20 @@ rxns = {}
 
 feature_reacs = []
 
+all_data = []
+
 training_x = []
 training_y = []
 testing_x = []
 testing_y = []
 
 def normalize(arr):
-    arr = np.log10(arr)
-    arr -= arr.min()
-    arr *= 1.0/arr.max()
+    arr = np.asarray(arr)
+    if logarithmize_rates:
+        arr = np.log10(arr)
+    if normalize_rates:
+        arr -= arr.min()
+        arr *= 1.0/arr.max()
     return arr
 
 for reaction_file, numer_file, denom_file in zip(sorted(glob.iglob(data_dir + '/reactdict_NPT*.txt')), sorted(glob.iglob(data_dir + '/numer*.txt')), sorted(glob.iglob(data_dir + '/denom*.txt'))):
@@ -88,35 +97,56 @@ for feature in features:
         if len(testing_x) >= num_testing:
             training_x.append(feats)
             training_y.append(rate)
+            index = len(training_x) - 1
         else:
             testing_x.append(feats)
             testing_y.append(rate)
+            index = len(testing_x) - 1
+        all_data.append({
+            'frame': frame,
+            'reaction': rxn,
+            'features': feats,
+            'rate': rate,
+            'partition': 'training' if len(testing_x) >= num_testing else 'testing',
+            'index': index
+        })
     else:
         print('Not found in reaction dictionary')
         print(rxn)
     # print(feats)
 
 all_rates = normalize(training_y + testing_y)
+plt.figure(0)
 plt.hist(all_rates, 50, normed=1, facecolor='green', alpha=0.75)
-# plt.show(block=True)
 
-print()
-
+print('-------------------------------------')
 print('Total Reactions:', len(features))
-
+print('Total Usable Reactions:', len(training_x + testing_x))
 print('Training:', len(training_x))
 print('Testing:', len(testing_x))
 
+print('> Normalizing and rescaling rate data')
+
 training_x = np.asarray(training_x)
-training_y = np.asarray(normalize(training_y) if normalize_rates else training_y)
+training_y = normalize(training_y)
 
 testing_x = np.asarray(testing_x)
-testing_y = np.asarray(normalize(testing_y) if normalize_rates else testing_y)
+testing_y = normalize(testing_y)
+
+print('> Saving data to CSVs')
+
+# Saving data to CSV
+np.savetxt('training_x.csv', training_x, delimiter=',')
+np.savetxt('training_y.csv', training_y, delimiter=',')
+np.savetxt('testing_x.csv', testing_x, delimiter=',')
+np.savetxt('testing_y.csv', testing_y, delimiter=',')
 
 # print(training_x[0], training_y[0])
 
+print('> Training model')
+
 regressor = MLPRegressor( # lbfgs/adam alpha=0.001
-    hidden_layer_sizes=(4000,), activation='relu', solver='lbfgs', alpha=0.001, batch_size='auto',
+    hidden_layer_sizes=(2000), activation='relu', solver='lbfgs', alpha=0.001, batch_size='auto',
     learning_rate='constant', learning_rate_init=0.001, power_t=0.5, max_iter=1000, shuffle=True,
     random_state=0, tol=0.0001, verbose=False, warm_start=False, momentum=0.9, nesterovs_momentum=True,
     early_stopping=False, validation_fraction=0.1, beta_1=0.9, beta_2=0.999, epsilon=1e-08)
@@ -125,7 +155,7 @@ n = regressor.fit(training_x, training_y)
 # regressor = svm.SVR(C=1.7, cache_size=200, coef0=0.0, degree=3, epsilon=0.1, gamma=0.00501, kernel='rbf', max_iter=-1, shrinking=True, tol=0.001, verbose=True)
 # n = regressor.fit(training_x, training_y)
 
-# dropout
+print('> Training complete, testing in-sample and out-of-sample')
 
 in_sample = regressor.predict(training_x)
 out_of_sample = regressor.predict(testing_x)
@@ -143,6 +173,10 @@ print(mean_squared_error(training_y, in_sample))
 print('In-sample R2:')
 print(r2_score(training_y, in_sample))
 
+plt.figure(1)
+plt.scatter(training_y, in_sample)
+plt.plot([0,1], [0,1])
+
 print()
 
 print('Out-of-sample Actual:')
@@ -155,3 +189,35 @@ print('Out-of-sample MSE:')
 print(mean_squared_error(testing_y, out_of_sample))
 print('Out-of-sample R2:')
 print(r2_score(testing_y, out_of_sample))
+
+plt.figure(2)
+plt.scatter(testing_y, out_of_sample)
+plt.plot([0,1], [0,1])
+
+print()
+
+print('Reactions with the same features:')
+same_feats = []
+for a in all_data:
+    for b in all_data:
+        reac_set = { a['reaction'], b['reaction'] }
+        if a != b and same_feats.count(reac_set) == 0 and np.array_equal(a['features'], b['features']):
+            same_feats.append(reac_set)
+            print('-----')
+            print(a['reaction'])
+            print(b['reaction'])
+
+print()
+
+print('Problematic reactions (difference between actual and predicted greater than or equal to 0.22):')
+# indices of problematic rxns in testing data
+# problematic = [0, 1, 2, 7, 8, 10, 11, 14, 15, 17, 18, 19, 25, 26, 27, 28, 30, 31, 38, 44, 46, 48, 49, 52, 56, 57, 60, 68, 69, 72, 74, 79, 83, 84, 91, 93, 96, 101, 105, 114, 115, 121, 122, 123, 131]
+problematic = [0, 8, 30, 31, 52, 56, 74, 93, 105, 110]
+for d in all_data:
+    for f in problematic:
+        if d['index'] == f and d['partition'] == 'testing':
+            print('-----')
+            print(d['reaction'])
+            print(testing_y[f])
+
+plt.show(block=True)

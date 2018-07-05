@@ -105,3 +105,6 @@ venv.bak/
 
 # Out files
 *.out
+
+# CSV files
+*.csv
