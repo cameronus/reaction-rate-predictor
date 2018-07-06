@@ -1,6 +1,7 @@
 import numpy as np
 from collections import Counter
 from sklearn.neural_network import MLPRegressor
+from sklearn.linear_model import RidgeCV
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import mean_squared_error
 from sklearn.metrics import r2_score
@@ -139,8 +140,22 @@ print('> Normalizing and rescaling rate data')
 training_x = np.asarray(training_x)
 training_y = normalize(training_y)
 
+to_delete = []
+for index, tr in enumerate(training_y):
+    if (tr < 0.3):
+        to_delete.append(index)
+training_x = np.delete(training_x, to_delete, axis=0)
+training_y = np.delete(training_y, to_delete, axis=0)
+
 testing_x = np.asarray(testing_x)
 testing_y = normalize(testing_y)
+
+to_delete = []
+for index, tr in enumerate(testing_y):
+    if (tr < 0.3):
+        to_delete.append(index)
+testing_x = np.delete(testing_x, to_delete, axis=0)
+testing_y = np.delete(testing_y, to_delete, axis=0)
 
 print('> Saving data to CSVs')
 
@@ -155,11 +170,14 @@ np.savetxt('testing_y.csv', testing_y, delimiter=',')
 print('> Training model')
 
 regressor = MLPRegressor( # lbfgs/adam alpha=0.001
-    hidden_layer_sizes=(150,150,150,150,), activation='relu', solver='lbfgs', alpha=0.001, batch_size='auto',
+    hidden_layer_sizes=(8,4,), activation='relu', solver='lbfgs', alpha=0.001, batch_size='auto',
     learning_rate='constant', learning_rate_init=0.001, power_t=0.5, max_iter=1000, shuffle=True,
     random_state=0, tol=0.0001, verbose=False, warm_start=False, momentum=0.9, nesterovs_momentum=True,
     early_stopping=False, validation_fraction=0.1, beta_1=0.9, beta_2=0.999, epsilon=1e-08)
 n = regressor.fit(training_x, training_y)
+
+# regressor = RidgeCV(alphas=[1e-3, 1e-2, 1e-1, 1, 1e2])
+# n = regressor.fit(training_x, training_y)
 
 # regressor = svm.SVR(C=1.7, cache_size=200, coef0=0.0, degree=3, epsilon=0.1, gamma=0.00501, kernel='rbf', max_iter=-1, shrinking=True, tol=0.001, verbose=True)
 # n = regressor.fit(training_x, training_y)
@@ -222,6 +240,8 @@ for a in all_data:
             print(a['reaction'])
             print(b['reaction'])
             print(a['features'])
+            print(a['rate'])
+            print(b['rate'])
 
 print()
 
@@ -229,12 +249,29 @@ print('Problematic reactions (difference between actual and predicted greater th
 # indices of problematic rxns in testing data
 # problematic = [0, 1, 2, 7, 8, 10, 11, 14, 15, 17, 18, 19, 25, 26, 27, 28, 30, 31, 38, 44, 46, 48, 49, 52, 56, 57, 60, 68, 69, 72, 74, 79, 83, 84, 91, 93, 96, 101, 105, 114, 115, 121, 122, 123, 131]
 # problematic = [0, 8, 30, 31, 52, 56, 74, 93, 105, 110]
-problematic = [0, 8, 13, 18, 19, 24, 25, 26, 30, 32, 40, 48, 49, 52, 56, 58, 60, 62, 68, 72, 74, 83, 84, 91, 93, 95, 101, 105, 106, 107, 110, 114, 115, 122]
+# problematic = [0, 8, 13, 18, 19, 24, 25, 26, 30, 32, 40, 48, 49, 52, 56, 58, 60, 62, 68, 72, 74, 83, 84, 91, 93, 95, 101, 105, 106, 107, 110, 114, 115, 122]
+problematic = []
+
+diffs = out_of_sample - testing_y
+for index, diff in enumerate(diffs):
+    if diff > 0.15:
+        problematic.append(index)
+
 for d in all_data:
     for f in problematic:
         if d['index'] == f and d['partition'] == 'testing':
             print('-----')
             print(d['reaction'])
+            print(d['features'])
             print(testing_y[f])
+            print(out_of_sample[f])
 
 plt.show(block=True)
+
+
+"""
+- xyz coords of all atoms in molecules ✓
+- molecule lifetimes
+
+- 2 reactants to 2 products
+"""
