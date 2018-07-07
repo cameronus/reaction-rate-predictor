@@ -37,13 +37,16 @@ training_y = []
 testing_x = []
 testing_y = []
 
+min_rate = None
+max_rate = None
+
 def normalize(arr):
     arr = np.asarray(arr)
     if logarithmize_rates:
         arr = np.log10(arr)
     if normalize_rates:
-        arr -= arr.min()
-        arr *= 1.0/arr.max()
+        arr -= min_rate
+        arr /= (max_rate - min_rate)
     return arr
 
 for reaction_file, numer_file, denom_file in zip(sorted(glob.iglob(data_dir + '/reactdict_NPT*.txt')), sorted(glob.iglob(data_dir + '/numer*.txt')), sorted(glob.iglob(data_dir + '/denom*.txt'))):
@@ -76,32 +79,32 @@ for rxn, rate in rxns.items():
     # print(rxn)
     # print(rate)
 
-with open('features.out', 'r') as file: features = [x.split('\n') for x in file.read().split('----------------------------------------') if x != '']
+with open('features_7-6-18.out', 'r') as file: features = [x.split('\n') for x in file.read().split('----------------------------------------') if x != '']
 for feature in features:
     rxn = feature[2].split(': ')[1].strip()
-    if eliminate_dup_feats:
-        feats = [[int(y) for y in x.split(' ') if y != ''] for x in feature[4:8]]
+    feats = [[int(y) for y in x.split(' ') if y != ''] for x in feature[4:8]]
     if feature_reacs.count(rxn) != 0 or (eliminate_dup_feats and feature_feats.count(feats) != 0):
         print('Not unique')
+        # print(rxn)
         continue
     if rxn in rxns:
         feature_reacs.append(rxn)
-        if eliminate_dup_feats:
-            feature_feats.append(feats)
+        feature_feats.append(feats)
         frame = feature[1].split(': ')[1]
-        if not eliminate_dup_feats:
-            feats = [[int(y) for y in x.split(' ') if y != ''] for x in feature[4:8]]
+        feats = np.concatenate(feats).ravel()
         rate = rxns[rxn]
-        # print(frame)
+        print('Reaction added')
         print(rxn)
+        print(feats)
+        print(feature)
+        # feature = [l.split(',') for l in ','.join(feature).split('')]
+        print(feature)
+        # print(frame)
         # print(rate)
         # for row in feats:
         #     for feat in row:
         #         print(str(feat).rjust(3), end='')
         #     print()
-        feats = np.concatenate(feats).ravel()
-        print(feats)
-        # print('Rate:', rate)
         is_training_data = len(testing_x) >= num_testing
         if is_training_data:
             training_x.append(feats)
@@ -119,6 +122,11 @@ for feature in features:
             'partition': 'training' if is_training_data else 'testing',
             'index': index
         })
+        logged_rate = np.log10(rate)
+        if not max_rate or logged_rate > max_rate:
+            max_rate = logged_rate
+        if not min_rate or logged_rate < min_rate:
+            min_rate = logged_rate
     else:
         print('Not found in reaction dictionary')
         print(rxn)
@@ -137,6 +145,9 @@ print('Testing:', len(testing_x))
 
 print('> Normalizing and rescaling rate data')
 
+print(max_rate)
+print(min_rate)
+
 training_x = np.asarray(training_x)
 training_y = normalize(training_y)
 
@@ -149,6 +160,9 @@ training_y = np.delete(training_y, to_delete, axis=0)
 
 testing_x = np.asarray(testing_x)
 testing_y = normalize(testing_y)
+
+print(len(training_y))
+print(len(testing_y))
 
 to_delete = []
 for index, tr in enumerate(testing_y):
