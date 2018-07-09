@@ -89,12 +89,11 @@ for feature in features:
     rxn = feature[2].split(': ')[1].strip()
     feats = np.concatenate([[int(y) for y in x.split(' ') if y != ''] for x in feature[4:8]]).ravel()
     if feature_reacs.count(rxn) != 0 or (eliminate_dup_feats and feature_feats.count(feats) != 0):
-        print('Not unique')
+        # print('Not unique')
         continue
     if rxn in rxns:
         feature_reacs.append(rxn)
         feature_feats.append(feats)
-        total_rxns += 1
 
         frame = feature[1].split(': ')[1]
         rate = rxns[rxn]
@@ -124,10 +123,11 @@ for feature in features:
                 f.seek(0, 2)
         f.close()
 
-        print('Reaction added')
+        print('Reaction #%d added', total_rxns)
         print(rxn)
         print(feats)
 
+        total_rxns += 1
         is_training_data = len(testing_x) >= num_testing
         if is_training_data:
             training_x.append(feats)
@@ -151,7 +151,7 @@ for feature in features:
         if not min_rate or logged_rate < min_rate:
             min_rate = logged_rate
     else:
-        print('Not found in reaction dictionary')
+        # print('Not found in reaction dictionary')
         print(rxn)
     # print(feats)
 
