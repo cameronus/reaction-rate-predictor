@@ -150,9 +150,10 @@ for feature in features:
             max_rate = logged_rate
         if not min_rate or logged_rate < min_rate:
             min_rate = logged_rate
-    else:
+    #else:
         # print('Not found in reaction dictionary')
         # print(rxn)
+
     # print(feats)
 
 all_rates = normalize(training_y + testing_y)
