@@ -123,7 +123,7 @@ for feature in features:
                 f.seek(0, 2)
         f.close()
 
-        print('Reaction #%d added', total_rxns)
+        print('Reaction #%d added' % total_rxns)
         print(rxn)
         print(feats)
 
