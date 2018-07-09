@@ -1,5 +1,6 @@
 import numpy as np
 from collections import Counter
+from itertools import groupby
 from sklearn.neural_network import MLPRegressor
 from sklearn.linear_model import RidgeCV
 from sklearn.linear_model import LogisticRegression
@@ -51,7 +52,8 @@ def normalize(arr):
 
 for reaction_file, numer_file, denom_file in zip(sorted(glob.iglob(data_dir + '/reactdict_NPT*.txt')), sorted(glob.iglob(data_dir + '/numer*.txt')), sorted(glob.iglob(data_dir + '/denom*.txt'))):
     print(reaction_file, numer_file, denom_file)
-    with open(reaction_file, 'r') as file: reactions += [reaction.split(': ')[1].strip() for reaction in file.read().split('\n')[:-1]]
+    with open(reaction_file, 'r') as file: reactions += [" ".join(reaction.split(': ')[1].strip().split())
+ for reaction in file.read().split('\n')[:-1]]
     with open(numer_file, 'r') as file: numerators = np.concatenate([numerators, np.fromstring(file.read(), dtype=np.float64, sep='\n')])
     with open(denom_file, 'r') as file: denominators = np.concatenate([denominators, np.fromstring(file.read(), dtype=np.float64, sep='\n')])
     print(len(reactions), len(numerators), len(denominators))
@@ -79,32 +81,48 @@ for rxn, rate in rxns.items():
     # print(rxn)
     # print(rate)
 
-with open('features_7-6-18.out', 'r') as file: features = [x.split('\n') for x in file.read().split('----------------------------------------') if x != '']
+with open('features.out', 'r') as file: features = [x.split('\n') for x in file.read().split('----------------------------------------') if x != '']
 for feature in features:
     rxn = feature[2].split(': ')[1].strip()
-    feats = [[int(y) for y in x.split(' ') if y != ''] for x in feature[4:8]]
+    feats = np.concatenate([[int(y) for y in x.split(' ') if y != ''] for x in feature[4:8]]).ravel()
     if feature_reacs.count(rxn) != 0 or (eliminate_dup_feats and feature_feats.count(feats) != 0):
         print('Not unique')
-        # print(rxn)
         continue
     if rxn in rxns:
         feature_reacs.append(rxn)
         feature_feats.append(feats)
+
         frame = feature[1].split(': ')[1]
-        feats = np.concatenate(feats).ravel()
         rate = rxns[rxn]
+        coords = []
+        raw_coords = feature[9:]
+        sides = list(list(g) for k, g in groupby(raw_coords, key=lambda x: x != '----') if k)
+        for s in sides:
+            coord = list(list(g) for k, g in groupby(s, key=lambda x: x != '') if k)
+            side = []
+            for mol in coord:
+                molecule = []
+                # print("molecule", mol[0])
+                molecule.append(mol[0])
+                for dim in mol[1:]:
+                    dim = dim.split()
+                    atom = dim[0]
+                    x = float(dim[1])
+                    y = float(dim[2])
+                    z = float(dim[3])
+                    # print("atom", atom)
+                    # print("x", x)
+                    # print("y", y)
+                    # print("z", z)
+                    molecule.append((atom, x, y, z))
+                side.append(molecule)
+            coords.append(side)
+
         print('Reaction added')
         print(rxn)
         print(feats)
-        print(feature)
-        # feature = [l.split(',') for l in ','.join(feature).split('')]
-        print(feature)
-        # print(frame)
-        # print(rate)
-        # for row in feats:
-        #     for feat in row:
-        #         print(str(feat).rjust(3), end='')
-        #     print()
+        print(coords)
+
         is_training_data = len(testing_x) >= num_testing
         if is_training_data:
             training_x.append(feats)
@@ -119,8 +137,9 @@ for feature in features:
             'reaction': rxn,
             'features': feats,
             'rate': rate,
+            'index': index,
             'partition': 'training' if is_training_data else 'testing',
-            'index': index
+            'coords': coords
         })
         logged_rate = np.log10(rate)
         if not max_rate or logged_rate > max_rate:
