@@ -13,6 +13,7 @@ import glob
 np.set_printoptions(linewidth=150, suppress=True, precision=6)
 
 data_dir = 'methane-data' # directory in which MD data is stored
+coord_dir = 'xyz' # directory in which to store 3D XYZ files
 min_occurences = 2 # minimum occurences in reaction dictionaries to be considered
 logarithmize_rates = True # whether to log10 rates
 normalize_rates = True # whether to normalize rates between 0 and 1
@@ -40,6 +41,8 @@ testing_y = []
 
 min_rate = None
 max_rate = None
+
+total_rxns = 0
 
 def normalize(arr):
     arr = np.asarray(arr)
@@ -91,55 +94,56 @@ for feature in features:
     if rxn in rxns:
         feature_reacs.append(rxn)
         feature_feats.append(feats)
+        total_rxns += 1
 
         frame = feature[1].split(': ')[1]
         rate = rxns[rxn]
-        coords = []
+
+        f = open(coord_dir + '/rxn_%d.xyz' % total_rxns, 'w')
+
         raw_coords = feature[9:]
         sides = list(list(g) for k, g in groupby(raw_coords, key=lambda x: x != '----') if k)
-        for s in sides:
-            coord = list(list(g) for k, g in groupby(s, key=lambda x: x != '') if k)
-            side = []
+        for s, side in enumerate(sides):
+            coord = list(list(g) for k, g in groupby(side, key=lambda x: x != '') if k)
             for mol in coord:
-                molecule = []
-                # print("molecule", mol[0])
-                molecule.append(mol[0])
+                # print next "frame", s
+                cur_pos = f.tell()
+                num_atoms = 0
+                f.write(' \n')
+                if (s == 0):
+                    f.write('Reactant: ')
+                else:
+                    f.write('Product: ')
+                f.write(mol[0] + '\n')
                 for dim in mol[1:]:
-                    dim = dim.split()
-                    atom = dim[0]
-                    x = float(dim[1])
-                    y = float(dim[2])
-                    z = float(dim[3])
-                    # print("atom", atom)
-                    # print("x", x)
-                    # print("y", y)
-                    # print("z", z)
-                    molecule.append((atom, x, y, z))
-                side.append(molecule)
-            coords.append(side)
+                    dim = ' '.join(dim.split())
+                    num_atoms += 1
+                    f.write(dim + '\n')
+                f.seek(cur_pos)
+                f.write("%d" % num_atoms)
+                f.seek(0, 2)
+        f.close()
 
         print('Reaction added')
         print(rxn)
         print(feats)
-        print(coords)
 
         is_training_data = len(testing_x) >= num_testing
         if is_training_data:
             training_x.append(feats)
             training_y.append(rate)
-            index = len(training_x) - 1
+            idx = len(training_x) - 1
         else:
             testing_x.append(feats)
             testing_y.append(rate)
-            index = len(testing_x) - 1
+            idx = len(testing_x) - 1
         all_data.append({
             'frame': frame,
             'reaction': rxn,
             'features': feats,
             'rate': rate,
-            'index': index,
-            'partition': 'training' if is_training_data else 'testing',
-            'coords': coords
+            'index': idx,
+            'partition': 'training' if is_training_data else 'testing'
         })
         logged_rate = np.log10(rate)
         if not max_rate or logged_rate > max_rate:
@@ -158,7 +162,7 @@ plt.suptitle('Rate Histogram')
 
 print('-------------------------------------')
 print('Total Reactions:', len(features))
-print('Total Usable Reactions:', len(training_x + testing_x))
+print('Total Usable Reactions:', total_rxns)
 print('Training:', len(training_x))
 print('Testing:', len(testing_x))
 
