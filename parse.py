@@ -8,12 +8,13 @@ from sklearn.metrics import mean_squared_error
 from sklearn.metrics import r2_score
 from sklearn import svm
 import matplotlib.pyplot as plt
+import os
 import glob
 
 np.set_printoptions(linewidth=150, suppress=True, precision=6)
 
 data_dir = 'methane-data' # directory in which MD data is stored
-coord_dir = 'xyz' # directory in which to store 3D XYZ files
+xyz_dir = 'xyz' # directory in which to store 3D XYZ files
 min_occurences = 2 # minimum occurences in reaction dictionaries to be considered
 logarithmize_rates = True # whether to log10 rates
 normalize_rates = True # whether to normalize rates between 0 and 1
@@ -98,21 +99,28 @@ for feature in features:
         frame = feature[1].split(': ')[1]
         rate = rxns[rxn]
 
-        f = open(coord_dir + '/rxn_%d.xyz' % total_rxns, 'w')
+        path = xyz_dir + '/rxn_%d' % total_rxns
+        if not os.path.exists(path):
+            os.makedirs(path)
 
+        count = [0, 0]
         raw_coords = feature[9:]
         sides = list(list(g) for k, g in groupby(raw_coords, key=lambda x: x != '----') if k)
         for s, side in enumerate(sides):
             coord = list(list(g) for k, g in groupby(side, key=lambda x: x != '') if k)
             for mol in coord:
+                prefix = 'reac_%d' % count[0] if s == 0 else 'prod_%d' % count[1]
+                f = open(path + '/' + prefix + '.xyz', 'w')
                 # print next "frame", s
                 cur_pos = f.tell()
                 num_atoms = 0
-                f.write(' \n')
+                f.write('   \n')
                 if (s == 0):
-                    f.write('Reactant: ')
+                    f.write('Reactant #%d: ' % count[0])
+                    count[0] += 1
                 else:
-                    f.write('Product: ')
+                    f.write('Product #%d: ' % count[1])
+                    count[1] += 1
                 f.write(mol[0] + '\n')
                 for dim in mol[1:]:
                     dim = ' '.join(dim.split())
@@ -121,7 +129,7 @@ for feature in features:
                 f.seek(cur_pos)
                 f.write("%d" % num_atoms)
                 f.seek(0, 2)
-        f.close()
+                f.close()
 
         print('Reaction #%d added' % total_rxns)
         print(rxn)
