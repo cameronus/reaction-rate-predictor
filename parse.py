@@ -18,8 +18,9 @@ xyz_dir = 'xyz' # directory in which to store 3D XYZ files
 min_occurences = 2 # minimum occurences in reaction dictionaries to be considered
 logarithmize_rates = True # whether to log10 rates
 normalize_rates = True # whether to normalize rates between 0 and 1
-num_testing = 134 # number of samples to reserve for testing
+num_testing = 134 #134 # number of samples to reserve for testing
 eliminate_dup_feats = False # ignore reactions with the same feature set
+cutoff = -1 # -1 for no cutoff
 
 # min_occurences = 2
 # num_testing = 134
@@ -150,7 +151,8 @@ for feature in features:
             'reaction': rxn,
             'features': feats,
             'rate': rate,
-            'index': idx,
+            'data_index': idx,
+            'index': total_rxns,
             'partition': 'training' if is_training_data else 'testing'
         })
         logged_rate = np.log10(rate)
@@ -185,7 +187,7 @@ training_y = normalize(training_y)
 
 to_delete = []
 for index, tr in enumerate(training_y):
-    if (tr < 0.3):
+    if (tr < cutoff):
         to_delete.append(index)
 training_x = np.delete(training_x, to_delete, axis=0)
 training_y = np.delete(training_y, to_delete, axis=0)
@@ -198,7 +200,7 @@ print(len(testing_y))
 
 to_delete = []
 for index, tr in enumerate(testing_y):
-    if (tr < 0.3):
+    if (tr < cutoff):
         to_delete.append(index)
 testing_x = np.delete(testing_x, to_delete, axis=0)
 testing_y = np.delete(testing_y, to_delete, axis=0)
@@ -291,7 +293,7 @@ for a in all_data:
 
 print()
 
-print('Problematic reactions (difference between actual and predicted greater than or equal to a certain cutoff):')
+print('Problematic reactions:')
 # indices of problematic rxns in testing data
 # problematic = [0, 1, 2, 7, 8, 10, 11, 14, 15, 17, 18, 19, 25, 26, 27, 28, 30, 31, 38, 44, 46, 48, 49, 52, 56, 57, 60, 68, 69, 72, 74, 79, 83, 84, 91, 93, 96, 101, 105, 114, 115, 121, 122, 123, 131]
 # problematic = [0, 8, 30, 31, 52, 56, 74, 93, 105, 110]
@@ -305,7 +307,7 @@ for index, diff in enumerate(diffs):
 
 for d in all_data:
     for f in problematic:
-        if d['index'] == f and d['partition'] == 'testing':
+        if d['data_index'] == f and d['partition'] == 'testing':
             print('-----')
             print(d['reaction'])
             print(d['features'])
