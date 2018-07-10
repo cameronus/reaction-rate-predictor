@@ -16,11 +16,10 @@ np.set_printoptions(linewidth=150, suppress=True, precision=6)
 data_dir = 'methane-data' # directory in which MD data is stored
 xyz_dir = 'xyz' # directory in which to store 3D XYZ files
 min_occurences = 2 # minimum occurences in reaction dictionaries to be considered
-logarithmize_rates = True # whether to log10 rates
 normalize_rates = True # whether to normalize rates between 0 and 1
-num_testing = 134 #134 # number of samples to reserve for testing
+train_test_split = 0.8 # percentage of data to be used for testing
 eliminate_dup_feats = False # ignore reactions with the same feature set
-cutoff = -1 # -1 for no cutoff
+cutoff = -1 # set to -1 for no cutoff
 
 # min_occurences = 2
 # num_testing = 134
@@ -48,9 +47,8 @@ total_rxns = 0
 
 def normalize(arr):
     arr = np.asarray(arr)
-    if logarithmize_rates:
-        arr = np.log10(arr)
     if normalize_rates:
+        arr = np.log10(arr)
         arr -= min_rate
         arr /= (max_rate - min_rate)
     return arr
@@ -90,7 +88,7 @@ with open('features.out', 'r') as file: features = [x.split('\n') for x in file.
 for feature in features:
     rxn = feature[2].split(': ')[1].strip()
     feats = np.concatenate([[int(y) for y in x.split(' ') if y != ''] for x in feature[4:8]]).ravel()
-    if feature_reacs.count(rxn) != 0 or (eliminate_dup_feats and feature_feats.count(feats) != 0):
+    if feature_reacs.count(rxn) != 0 or (eliminate_dup_feats and any((feats == x).all() for x in feature_feats)):
         # print('Not unique')
         continue
     if rxn in rxns:
@@ -137,23 +135,12 @@ for feature in features:
         print(feats)
 
         total_rxns += 1
-        is_training_data = len(testing_x) >= num_testing
-        if is_training_data:
-            training_x.append(feats)
-            training_y.append(rate)
-            idx = len(training_x) - 1
-        else:
-            testing_x.append(feats)
-            testing_y.append(rate)
-            idx = len(testing_x) - 1
         all_data.append({
             'frame': frame,
             'reaction': rxn,
             'features': feats,
             'rate': rate,
-            'data_index': idx,
-            'index': total_rxns,
-            'partition': 'training' if is_training_data else 'testing'
+            'index': total_rxns
         })
         logged_rate = np.log10(rate)
         if not max_rate or logged_rate > max_rate:
@@ -165,6 +152,18 @@ for feature in features:
         # print(rxn)
 
     # print(feats)
+
+for index, data in enumerate(all_data):
+    if index < len(all_data) * train_test_split:
+        training_x.append(data['features'])
+        training_y.append(data['rate'])
+        data['data_index'] = len(training_y) - 1
+        data['partition'] = 'training'
+    else:
+        testing_x.append(data['features'])
+        testing_y.append(data['rate'])
+        data['data_index'] = len(testing_y) - 1
+        data['partition'] = 'testing'
 
 all_rates = normalize(training_y + testing_y)
 plt.figure(0)
