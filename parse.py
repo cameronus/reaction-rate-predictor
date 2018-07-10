@@ -101,6 +101,9 @@ for feature in features:
         path = xyz_dir + '/rxn_%d' % total_rxns
         if not os.path.exists(path):
             os.makedirs(path)
+        to_delete = glob.glob(xyz_dir + '/rxn_%d/*')
+        for f in to_delete:
+            os.remove(f)
 
         count = [0, 0]
         raw_coords = feature[9:]
@@ -314,11 +317,3 @@ for d in all_data:
             print(out_of_sample[f])
 
 plt.show(block=True)
-
-
-"""
-- xyz coords of all atoms in molecules ✓
-- molecule lifetimes
-
-- 2 reactants to 2 products
-"""
