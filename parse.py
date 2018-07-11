@@ -10,16 +10,18 @@ from sklearn import svm
 import matplotlib.pyplot as plt
 import os
 import glob
+import shutil
 
 np.set_printoptions(linewidth=150, suppress=True, precision=6)
 
+feature_file = 'features_200.out' # file containing features
 data_dir = 'methane-data' # directory in which MD data is stored
 xyz_dir = 'xyz' # directory in which to store 3D XYZ files
 min_occurences = 2 # minimum occurences in reaction dictionaries to be considered
 normalize_rates = True # whether to normalize rates between 0 and 1
 train_test_split = 0.8 # percentage of data to be used for testing
 eliminate_dup_feats = False # ignore reactions with the same feature set
-cutoff = -1 # set to -1 for no cutoff
+cutoff = 0 # set to 0 for no cutoff
 
 # min_occurences = 2
 # num_testing = 134
@@ -84,7 +86,12 @@ for rxn, rate in rxns.items():
     # print(rxn)
     # print(rate)
 
-with open('features.out', 'r') as file: features = [x.split('\n') for x in file.read().split('----------------------------------------') if x != '']
+to_delete = glob.glob(xyz_dir + '/*')
+print(to_delete)
+for f in to_delete:
+    shutil.rmtree(f)
+
+with open(feature_file, 'r') as file: features = [x.split('\n') for x in file.read().split('----------------------------------------') if x != '']
 for feature in features:
     rxn = feature[2].split(': ')[1].strip()
     feats = np.concatenate([[int(y) for y in x.split(' ') if y != ''] for x in feature[4:8]]).ravel()
@@ -99,11 +106,7 @@ for feature in features:
         rate = rxns[rxn]
 
         path = xyz_dir + '/rxn_%d' % total_rxns
-        if not os.path.exists(path):
-            os.makedirs(path)
-        to_delete = glob.glob(xyz_dir + '/rxn_%d/*')
-        for f in to_delete:
-            os.remove(f)
+        os.makedirs(path)
 
         count = [0, 0]
         raw_coords = feature[9:]
@@ -292,6 +295,8 @@ for a in all_data:
             print(a['features'])
             print(a['rate'])
             print(b['rate'])
+            print(a['index'])
+            print(b['index'])
 
 print()
 
