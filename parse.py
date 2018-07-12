@@ -46,6 +46,8 @@ min_rate = None
 max_rate = None
 
 total_rxns = 0
+not_eligible = 0
+unique_rxn_count = 0
 
 def normalize(arr):
     arr = np.asarray(arr)
@@ -97,6 +99,7 @@ for feature in features:
     if feature_reacs.count(rxn) != 0 or (eliminate_dup_feats and any((feats == x).all() for x in feature_feats)):
         # print('Not unique')
         continue
+    unique_rxn_count += 1
     if rxn in rxns:
         feature_reacs.append(rxn)
         feature_feats.append(feats)
@@ -152,7 +155,8 @@ for feature in features:
             max_rate = logged_rate
         if not min_rate or logged_rate < min_rate:
             min_rate = logged_rate
-    #else:
+    else:
+        not_eligible += 1
         # print('Not found in reaction dictionary')
         # print(rxn)
 
@@ -178,10 +182,16 @@ plt.suptitle('Rate Histogram')
 all_rates_normalized= normalize(all_rates)
 plt.figure(1)
 plt.hist(all_rates_normalized, 50, normed=1, facecolor='green', alpha=0.75)
-plt.suptitle('Logarithmic Scale Rate Histogram')
+plt.suptitle('Log-scale Rate Histogram')
 
 print('-------------------------------------')
+print('ReaxFF Data:')
+print('Total Reactions:', len(reactions))
+print('Reactions Occuring More Than %d Times: %d' % (min_occurences, len(rxns)))
+print('Molecular Analyzer Data:')
 print('Total Reactions:', len(features))
+print('Total Unique Reactions:', unique_rxn_count)
+print('Not Eligible (occured less than %d times in the reaction dictionaries): %d' % (min_occurences, not_eligible))
 print('Total Usable Reactions:', total_rxns)
 print('Training:', len(training_x))
 print('Testing:', len(testing_x))
