@@ -14,7 +14,7 @@ import shutil
 
 np.set_printoptions(linewidth=150, suppress=True, precision=6)
 
-feature_file = 'features_200.out' # file containing features
+feature_file = 'features.out' # file containing features 'features_200.out'
 data_dir = 'methane-data' # directory in which MD data is stored
 xyz_dir = 'xyz' # directory in which to store 3D XYZ files
 min_occurences = 2 # minimum occurences in reaction dictionaries to be considered
@@ -87,7 +87,6 @@ for rxn, rate in rxns.items():
     # print(rate)
 
 to_delete = glob.glob(xyz_dir + '/*')
-print(to_delete)
 for f in to_delete:
     shutil.rmtree(f)
 
@@ -171,10 +170,15 @@ for index, data in enumerate(all_data):
         data['data_index'] = len(testing_y) - 1
         data['partition'] = 'testing'
 
-all_rates = normalize(training_y + testing_y)
+all_rates = training_y + testing_y
 plt.figure(0)
 plt.hist(all_rates, 50, normed=1, facecolor='green', alpha=0.75)
 plt.suptitle('Rate Histogram')
+
+all_rates_normalized= normalize(all_rates)
+plt.figure(1)
+plt.hist(all_rates_normalized, 50, normed=1, facecolor='green', alpha=0.75)
+plt.suptitle('Logarithmic Scale Rate Histogram')
 
 print('-------------------------------------')
 print('Total Reactions:', len(features))
@@ -253,7 +257,7 @@ print(mean_squared_error(training_y, in_sample))
 print('In-sample R2:')
 print(r2_score(training_y, in_sample))
 
-plt.figure(1)
+plt.figure(2)
 plt.scatter(training_y, in_sample)
 plt.plot([0,1], [0,1])
 plt.suptitle('In-sample Test')
@@ -273,7 +277,7 @@ print(mean_squared_error(testing_y, out_of_sample))
 print('Out-of-sample R2:')
 print(r2_score(testing_y, out_of_sample))
 
-plt.figure(2)
+plt.figure(3)
 plt.scatter(testing_y, out_of_sample)
 plt.plot([0,1], [0,1])
 plt.suptitle('Out-of-sample Test')
