@@ -142,7 +142,6 @@ for feature in features:
         print(rxn)
         print(feats)
 
-        total_rxns += 1
         all_data.append({
             'frame': frame,
             'reaction': rxn,
@@ -150,6 +149,7 @@ for feature in features:
             'rate': rate,
             'index': total_rxns
         })
+        total_rxns += 1
         logged_rate = np.log10(rate)
         if not max_rate or logged_rate > max_rate:
             max_rate = logged_rate
@@ -188,6 +188,8 @@ print('-------------------------------------')
 print('ReaxFF Data:')
 print('Total Reactions:', len(reactions))
 print('Reactions Occuring More Than %d Times: %d' % (min_occurences, len(rxns)))
+print()
+
 print('Molecular Analyzer Data:')
 print('Total Reactions:', len(features))
 print('Total Unique Reactions:', unique_rxn_count)
@@ -195,11 +197,17 @@ print('Not Eligible (occured less than %d times in the reaction dictionaries): %
 print('Total Usable Reactions:', total_rxns)
 print('Training:', len(training_x))
 print('Testing:', len(testing_x))
+print()
+
+print('Feature Information:')
+print('Feature Vector Length:', len(feature_feats[0]))
+print('# Features:', int(len(feature_feats[0]) / 4))
+print()
 
 print('> Normalizing and rescaling rate data')
 
-print(max_rate)
-print(min_rate)
+print('Min Rate:', max_rate)
+print('Max Rate:', min_rate)
 
 training_x = np.asarray(training_x)
 training_y = normalize(training_y)
@@ -214,8 +222,8 @@ training_y = np.delete(training_y, to_delete, axis=0)
 testing_x = np.asarray(testing_x)
 testing_y = normalize(testing_y)
 
-print(len(training_y))
-print(len(testing_y))
+# print(len(training_y))
+# print(len(testing_y))
 
 to_delete = []
 for index, tr in enumerate(testing_y):
