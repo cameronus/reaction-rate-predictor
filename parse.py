@@ -57,6 +57,13 @@ def normalize(arr):
         arr /= (max_rate - min_rate)
     return arr
 
+def denormalize(arr):
+    if normalize_rates:
+        arr *= (max_rate - min_rate)
+        arr += min_rate
+        arr = np.power(10, arr)
+    return arr
+
 for reaction_file, numer_file, denom_file in zip(sorted(glob.iglob(data_dir + '/reactdict_NPT*.txt')), sorted(glob.iglob(data_dir + '/numer*.txt')), sorted(glob.iglob(data_dir + '/denom*.txt'))):
     print(reaction_file, numer_file, denom_file)
     with open(reaction_file, 'r') as file: reactions += [" ".join(reaction.split(': ')[1].strip().split())
@@ -214,7 +221,9 @@ print('Min Rate:', max_rate)
 print('Max Rate:', min_rate)
 
 training_x = np.asarray(training_x)
+print(testing_y)
 training_y = normalize(training_y)
+# print(denormalize(np.copy(training_y))[0])
 
 to_delete = []
 for index, tr in enumerate(training_y):
@@ -249,7 +258,7 @@ np.savetxt('testing_y.csv', testing_y, delimiter=',')
 print('> Training model')
 
 regressor = MLPRegressor( # lbfgs/adam alpha=0.001
-    hidden_layer_sizes=(8,4,), activation='relu', solver='lbfgs', alpha=0.001, batch_size='auto',
+    hidden_layer_sizes=(16,8,), activation='relu', solver='lbfgs', alpha=0.001, batch_size='auto',
     learning_rate='constant', learning_rate_init=0.001, power_t=0.5, max_iter=1000, shuffle=True,
     random_state=0, tol=0.0001, verbose=False, warm_start=False, momentum=0.9, nesterovs_momentum=True,
     early_stopping=False, validation_fraction=0.1, beta_1=0.9, beta_2=0.999, epsilon=1e-08)
@@ -298,6 +307,24 @@ print('Out-of-sample MSE:')
 print(mean_squared_error(testing_y, out_of_sample))
 print('Out-of-sample R2:')
 print(r2_score(testing_y, out_of_sample))
+
+# percent_error = (out_of_sample - testing_y)/testing_y * 100
+# print('Percent Error Normalized:')
+# print(percent_error)
+#
+np.set_printoptions(formatter={'float': lambda x: "{0:0.6f}".format(x)})
+percent_error_actual = (denormalize(np.copy(out_of_sample)) - denormalize(np.copy(testing_y)))/abs(denormalize(np.copy(testing_y))) * 100
+print('Percent Error Actual:')
+print(percent_error_actual)
+print(np.average(abs(percent_error_actual)))
+np.set_printoptions(linewidth=150, suppress=True, precision=6)
+print('Out-of-sample Actual Difference:')
+print(abs(denormalize(np.copy(testing_y)) - denormalize(np.copy(out_of_sample))))
+print('Actual Testing Y')
+print(denormalize(np.copy(testing_y)))
+# print(denormalize(np.copy(testing_y))[-2])
+# print('Relative Change')
+# abs(denormalize(np.copy(testing_y)) - denormalize(np.copy(out_of_sample)))/denormalize(np.copy(testing_y))
 
 plt.figure(3)
 plt.scatter(testing_y, out_of_sample)
