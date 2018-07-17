@@ -95,7 +95,11 @@ for f in to_delete:
 with open(feature_file, 'r') as file: features = [x.split('\n') for x in file.read().split('----------------------------------------') if x != '']
 for feature in features:
     rxn = feature[2].split(': ')[1].strip()
-    feats = np.concatenate([[int(y) for y in x.split(' ') if y != ''] for x in feature[4:8]]).ravel()
+    feats = [[int(y) for y in x.split(' ') if y != ''] for x in feature[4:8]]
+    # feats = np.delete(feats, 8, 1)
+    # for f_idx in range(len(feats)):
+        # feats[f_idx][4] = abs(feats[f_idx][4])
+    feats = np.concatenate(feats)
     if feature_reacs.count(rxn) != 0 or (eliminate_dup_feats and any((feats == x).all() for x in feature_feats)):
         # print('Not unique')
         continue
