@@ -2,7 +2,8 @@ import numpy as np
 from collections import Counter
 from itertools import groupby
 from sklearn.neural_network import MLPRegressor
-from sklearn.linear_model import RidgeCV
+# from sklearn.linear_model import RidgeCV
+from sklearn import linear_model
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import mean_squared_error
 from sklearn.metrics import r2_score
@@ -221,7 +222,7 @@ print('Min Rate:', max_rate)
 print('Max Rate:', min_rate)
 
 training_x = np.asarray(training_x)
-print(testing_y)
+# print(testing_y)
 training_y = normalize(training_y)
 # print(denormalize(np.copy(training_y))[0])
 
@@ -264,7 +265,9 @@ regressor = MLPRegressor( # lbfgs/adam alpha=0.001
     early_stopping=False, validation_fraction=0.1, beta_1=0.9, beta_2=0.999, epsilon=1e-08)
 n = regressor.fit(training_x, training_y)
 
-# regressor = RidgeCV(alphas=[1e-3, 1e-2, 1e-1, 1, 1e2])
+
+
+# regressor = linear_model.RidgeCV(alphas=[1e-3, 1e-2, 1e-1, 1, 1e2])
 # n = regressor.fit(training_x, training_y)
 
 # regressor = svm.SVR(C=1.7, cache_size=200, coef0=0.0, degree=3, epsilon=0.1, gamma=0.00501, kernel='rbf', max_iter=-1, shrinking=True, tol=0.001, verbose=True)
@@ -311,17 +314,16 @@ print(r2_score(testing_y, out_of_sample))
 # percent_error = (out_of_sample - testing_y)/testing_y * 100
 # print('Percent Error Normalized:')
 # print(percent_error)
-#
-np.set_printoptions(formatter={'float': lambda x: "{0:0.6f}".format(x)})
-percent_error_actual = (denormalize(np.copy(out_of_sample)) - denormalize(np.copy(testing_y)))/abs(denormalize(np.copy(testing_y))) * 100
-print('Percent Error Actual:')
-print(percent_error_actual)
-print(np.average(abs(percent_error_actual)))
-np.set_printoptions(linewidth=150, suppress=True, precision=6)
-print('Out-of-sample Actual Difference:')
-print(abs(denormalize(np.copy(testing_y)) - denormalize(np.copy(out_of_sample))))
-print('Actual Testing Y')
-print(denormalize(np.copy(testing_y)))
+
+# percent_error_actual = (denormalize(np.copy(out_of_sample)) - denormalize(np.copy(testing_y)))/abs(denormalize(np.copy(testing_y))) * 100
+# print('Percent Error Actual:')
+# print(percent_error_actual)
+# print(np.average(abs(percent_error_actual)))
+# print('Out-of-sample Actual Difference:')
+# print(abs(denormalize(np.copy(testing_y)) - denormalize(np.copy(out_of_sample))))
+# print('Actual Testing Y')
+# print(denormalize(np.copy(testing_y)))
+
 # print(denormalize(np.copy(testing_y))[-2])
 # print('Relative Change')
 # abs(denormalize(np.copy(testing_y)) - denormalize(np.copy(out_of_sample)))/denormalize(np.copy(testing_y))

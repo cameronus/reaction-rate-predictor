@@ -1,4 +1,5 @@
 import numpy as np
+from keras import backend as K
 from keras.models import Sequential
 from keras.layers import Dense, Dropout, BatchNormalization
 
@@ -22,10 +23,9 @@ print(testing_y)
 # model.add(Dense(1, activation='linear', input_shape=(150,)))
 
 model = Sequential()
-model.add(Dense(32, activation='linear', input_shape=(32,)))
-model.add(Dense(8, activation='relu', input_shape=(32,)))
-model.add(Dense(4, activation='relu', input_shape=(8,)))
-model.add(Dense(1, activation='linear', input_shape=(4,)))
+model.add(Dense(16, activation='relu', input_shape=(36,)))
+model.add(Dense(8, activation='relu', input_shape=(16,)))
+model.add(Dense(1, activation='linear', input_shape=(8,)))
 
 model.compile(optimizer='adam', loss='mean_squared_error')
 
@@ -43,7 +43,18 @@ print()
 
 print(testing_y)
 print(out_of_sample)
-print(abs(testing_y - out_of_sample))
-print(np.mean(abs(testing_y - out_of_sample)))
+
+loss_and_metrics = model.evaluate(testing_x, testing_y, batch_size=256)
+print(loss_and_metrics)
+
+# def r2_keras(y_true, y_pred):
+#     SS_res =  K.sum(K.square(y_true - y_pred))
+#     SS_tot = K.sum(K.square(y_true - K.mean(y_true)))
+#     return ( 1 - SS_res/(SS_tot + K.epsilon()) )
+
+# print(r2_keras(testing_y, out_of_sample))
+
+# print(abs(testing_y - out_of_sample))
+# print(np.mean(abs(testing_y - out_of_sample)))
 
 # print(model.score(testing_x, testing_y))
