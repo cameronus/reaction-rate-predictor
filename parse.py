@@ -67,8 +67,7 @@ def denormalize(arr):
 
 for reaction_file, numer_file, denom_file in zip(sorted(glob.iglob(data_dir + '/reactdict_NPT*.txt')), sorted(glob.iglob(data_dir + '/numer*.txt')), sorted(glob.iglob(data_dir + '/denom*.txt'))):
     print(reaction_file, numer_file, denom_file)
-    with open(reaction_file, 'r') as file: reactions += [" ".join(reaction.split(': ')[1].strip().split())
- for reaction in file.read().split('\n')[:-1]]
+    with open(reaction_file, 'r') as file: reactions += [" ".join(reaction.split(': ')[1].strip().split()) for reaction in file.read().split('\n')[:-1]]
     with open(numer_file, 'r') as file: numerators = np.concatenate([numerators, np.fromstring(file.read(), dtype=np.float64, sep='\n')])
     with open(denom_file, 'r') as file: denominators = np.concatenate([denominators, np.fromstring(file.read(), dtype=np.float64, sep='\n')])
     print(len(reactions), len(numerators), len(denominators))
