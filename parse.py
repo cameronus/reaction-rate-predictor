@@ -9,6 +9,7 @@ from sklearn.metrics import r2_score
 from sklearn import preprocessing
 from sklearn import svm
 import matplotlib.pyplot as plt
+# from lifetimes import get_lifetimes
 import os
 import glob
 import shutil
@@ -50,6 +51,8 @@ not_eligible = 0
 unique_rxn_count = 0
 
 testing_reacs = []
+
+# lifetimes = get_lifetimes()
 
 def normalize(arr):
     arr = np.asarray(arr)
@@ -105,11 +108,11 @@ for f in to_delete:
 with open(feature_file, 'r') as file: features = [x.split('\n') for x in file.read().split('----------------------------------------') if x != '']
 for feature in features:
     rxn = feature[2].split(': ')[1].strip()
-    feats = [[int(y) for y in x.split(' ') if y != ''] for x in feature[4:8]]
+    feats_split = [[int(y) for y in x.split(' ') if y != ''] for x in feature[4:8]]
     # feats = np.delete(feats, 8, 1)
     # for f_idx in range(len(feats)):
         # feats[f_idx][4] = abs(feats[f_idx][4])
-    feats = np.concatenate(feats)
+    feats = np.concatenate(feats_split)
     if feature_reacs.count(rxn) != 0 or (eliminate_dup_feats and any((feats == x).all() for x in feature_feats)):
         # print('Not unique')
         continue
@@ -120,6 +123,14 @@ for feature in features:
 
         frame = feature[1].split(': ')[1]
         rate = rxns[rxn]
+
+        # reaction_sides = np.concatenate([x.split(' + ') for x in rxn.split(' => ')])
+        # print(feats_split)
+        # for index, feat in enumerate(feats_split):
+        #     idx = 2 if index > 2 else index
+        #     # print(feats_split[idx][:5])
+        #     feats_split[index].insert(5, lifetimes[reaction_sides[idx]])
+        # feats = np.concatenate(feats_split)
 
         path = xyz_dir + '/rxn_%d' % total_rxns
         os.makedirs(path)
@@ -199,12 +210,12 @@ scaler.fit(training_x)
 
 all_rates = training_y + testing_y
 plt.figure(0)
-plt.hist(all_rates, 50, normed=1, facecolor='green', alpha=0.75)
+plt.hist(all_rates, 20, facecolor='green', alpha=0.75)
 plt.suptitle('Rate Histogram')
 
 all_rates_normalized = normalize(all_rates)
 plt.figure(1)
-plt.hist(all_rates_normalized, 50, normed=1, facecolor='green', alpha=0.75)
+plt.hist(all_rates_normalized, 50, facecolor='green', alpha=0.75)
 plt.suptitle('Log-scale Rate Histogram')
 
 print('-------------------------------------')
@@ -223,8 +234,8 @@ print('Testing:', len(testing_x))
 print()
 
 print('Feature Information:')
-print('Feature Vector Length:', len(feature_feats[0]))
-print('# Features:', int(len(feature_feats[0]) / 4))
+print('Feature Vector Length:', len(training_x[0]))
+print('# Features:', int(len(training_x[0]) / 4))
 print()
 
 print('> Normalizing and rescaling rate data')
@@ -339,8 +350,8 @@ print(r2_score(testing_y, out_of_sample))
 print(r2_score(denormalize(np.copy(testing_y)), denormalize(np.copy(out_of_sample))))
 
 diffs = abs(testing_y - out_of_sample)
-print(testing_reacs)
-print(diffs)
+# print(testing_reacs)
+# print(diffs)
 plt.figure(3)
 plt.hist(diffs, 60)
 
