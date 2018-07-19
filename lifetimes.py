@@ -23,7 +23,7 @@ with open(lifetimes_file, 'r') as file:
             lifetimes[parts[0]] = 0
         lifetimes[parts[0]] += int(parts[1])
 
-print(lifetimes)
+# print(lifetimes)
 print('Total Number of Molecules:', total_molecules)
 
 print('Percentages:')
@@ -31,10 +31,10 @@ for molecule in lifetimes:
     percentage = lifetimes[molecule] / total_molecules * 100
     print('%s: %f' % (molecule, percentage))
     percentages.append(percentage)
-percentages = normalize(percentages)
-print('Normalized:')
-for index, percentage in enumerate(percentages):
-    print('%s: %f' % (list(lifetimes.keys())[index], percentage))
+# percentages = normalize(percentages)
+# print('Normalized:')
+# for index, percentage in enumerate(percentages):
+#     print('%s: %f' % (list(lifetimes.keys())[index], percentage))
 
 plt.hist(percentages, 30, normed=1, facecolor='green', alpha=0.75)
 plt.show(block=True)

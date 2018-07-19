@@ -2,11 +2,11 @@ import numpy as np
 from collections import Counter
 from itertools import groupby
 from sklearn.neural_network import MLPRegressor
-# from sklearn.linear_model import RidgeCV
 from sklearn import linear_model
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import mean_squared_error
 from sklearn.metrics import r2_score
+from sklearn import preprocessing
 from sklearn import svm
 import matplotlib.pyplot as plt
 import os
@@ -19,13 +19,11 @@ feature_file = 'features.out' # file containing features 'features_200.out'
 data_dir = 'methane-data' # directory in which MD data is stored
 xyz_dir = 'xyz' # directory in which to store 3D XYZ files
 min_occurences = 2 # minimum occurences in reaction dictionaries to be considered
-normalize_rates = True # whether to normalize rates between 0 and 1
+normalize_rates = True # whether to normalize logged rates between 0 and 1
 train_test_split = 0.8 # percentage of data to be used for testing
 eliminate_dup_feats = False # ignore reactions with the same feature set
-cutoff = 0 # set to 0 for no cutoff
-
-# min_occurences = 2
-# num_testing = 134
+# high_cutoff = 0.5
+# low_cutoff = 0
 
 reactions = []
 numerators = []
@@ -161,7 +159,10 @@ for feature in features:
             'index': total_rxns
         })
         total_rxns += 1
-        logged_rate = np.log10(rate)
+        if normalize_rates:
+            logged_rate = np.log10(rate)
+        else:
+            logged_rate = rate
         if not max_rate or logged_rate > max_rate:
             max_rate = logged_rate
         if not min_rate or logged_rate < min_rate:
@@ -185,12 +186,17 @@ for index, data in enumerate(all_data):
         data['data_index'] = len(testing_y) - 1
         data['partition'] = 'testing'
 
+scaler = preprocessing.StandardScaler()
+scaler.fit(training_x)
+# training_x = scaler.transform(training_x)
+# testing_x = scaler.transform(testing_x)
+
 all_rates = training_y + testing_y
 plt.figure(0)
 plt.hist(all_rates, 50, normed=1, facecolor='green', alpha=0.75)
 plt.suptitle('Rate Histogram')
 
-all_rates_normalized= normalize(all_rates)
+all_rates_normalized = normalize(all_rates)
 plt.figure(1)
 plt.hist(all_rates_normalized, 50, normed=1, facecolor='green', alpha=0.75)
 plt.suptitle('Log-scale Rate Histogram')
@@ -217,33 +223,34 @@ print()
 
 print('> Normalizing and rescaling rate data')
 
-print('Min Rate:', max_rate)
-print('Max Rate:', min_rate)
+print('Min Rate:', min_rate)
+print('Max Rate:', max_rate)
+
+# to_delete = []
+# for index, tr in enumerate(training_y):
+#     if (tr > high_cutoff or tr < low_cutoff):
+#         to_delete.append(index)
+# training_x = np.delete(training_x, to_delete, axis=0)
+# training_y = np.delete(training_y, to_delete, axis=0)
+
+# print(len(training_y))
+# print(len(testing_y))
+
+# to_delete = []
+# for index, tr in enumerate(testing_y):
+#     if (tr > high_cutoff or tr < low_cutoff):
+#         to_delete.append(index)
+# testing_x = np.delete(testing_x, to_delete, axis=0)
+# testing_y = np.delete(testing_y, to_delete, axis=0)
 
 training_x = np.asarray(training_x)
 # print(testing_y)
 training_y = normalize(training_y)
 # print(denormalize(np.copy(training_y))[0])
 
-to_delete = []
-for index, tr in enumerate(training_y):
-    if (tr < cutoff):
-        to_delete.append(index)
-training_x = np.delete(training_x, to_delete, axis=0)
-training_y = np.delete(training_y, to_delete, axis=0)
-
 testing_x = np.asarray(testing_x)
 testing_y = normalize(testing_y)
 
-# print(len(training_y))
-# print(len(testing_y))
-
-to_delete = []
-for index, tr in enumerate(testing_y):
-    if (tr < cutoff):
-        to_delete.append(index)
-testing_x = np.delete(testing_x, to_delete, axis=0)
-testing_y = np.delete(testing_y, to_delete, axis=0)
 
 print('> Saving data to CSVs')
 
@@ -264,7 +271,19 @@ regressor = MLPRegressor( # lbfgs/adam alpha=0.001
     early_stopping=False, validation_fraction=0.1, beta_1=0.9, beta_2=0.999, epsilon=1e-08)
 n = regressor.fit(training_x, training_y)
 
+# regressor = MLPRegressor( # lbfgs/adam alpha=0.001
+#     hidden_layer_sizes=(13,13,13,), activation='relu', solver='adam', alpha=0.0001, batch_size='auto',
+#     learning_rate='constant', learning_rate_init=0.001, power_t=0.5, max_iter=1000, shuffle=True,
+#     random_state=None, tol=0.0001, verbose=False, warm_start=False, momentum=0.9, nesterovs_momentum=True,
+#     early_stopping=False, validation_fraction=0.1, beta_1=0.9, beta_2=0.999, epsilon=1e-08)
+# n = regressor.fit(training_x, training_y)
 
+# regressor = MLPRegressor( # lbfgs/adam alpha=0.001
+#     hidden_layer_sizes=(512,256,128,), activation='relu', solver='sgd', alpha=0.001, batch_size='auto',
+#     learning_rate='constant', learning_rate_init=0.001, power_t=0.5, max_iter=1000, shuffle=True,
+#     random_state=0, tol=0.0001, verbose=False, warm_start=False, momentum=0.9, nesterovs_momentum=True,
+#     early_stopping=False, validation_fraction=0.1, beta_1=0.9, beta_2=0.999, epsilon=1e-08)
+# n = regressor.fit(training_x, training_y)
 
 # regressor = linear_model.RidgeCV(alphas=[1e-3, 1e-2, 1e-1, 1, 1e2])
 # n = regressor.fit(training_x, training_y)
@@ -290,6 +309,8 @@ print(mean_squared_error(training_y, in_sample))
 print('In-sample R2:')
 print(r2_score(training_y, in_sample))
 
+# training_y = denormalize(training_y)
+# in_sample = denormalize(in_sample)
 plt.figure(2)
 plt.scatter(training_y, in_sample)
 plt.plot([0,1], [0,1])
@@ -309,24 +330,27 @@ print('Out-of-sample MSE:')
 print(mean_squared_error(testing_y, out_of_sample))
 print('Out-of-sample R2:')
 print(r2_score(testing_y, out_of_sample))
+print(r2_score(denormalize(np.copy(testing_y)), denormalize(np.copy(out_of_sample))))
 
 # percent_error = (out_of_sample - testing_y)/testing_y * 100
 # print('Percent Error Normalized:')
 # print(percent_error)
 
-# percent_error_actual = (denormalize(np.copy(out_of_sample)) - denormalize(np.copy(testing_y)))/abs(denormalize(np.copy(testing_y))) * 100
-# print('Percent Error Actual:')
-# print(percent_error_actual)
-# print(np.average(abs(percent_error_actual)))
-# print('Out-of-sample Actual Difference:')
-# print(abs(denormalize(np.copy(testing_y)) - denormalize(np.copy(out_of_sample))))
-# print('Actual Testing Y')
-# print(denormalize(np.copy(testing_y)))
+percent_error_actual = (denormalize(np.copy(out_of_sample)) - denormalize(np.copy(testing_y)))/abs(denormalize(np.copy(testing_y))) * 100
+print('Percent Error Actual:')
+print(percent_error_actual)
+print()
+print(np.average(abs(percent_error_actual)))
+print('Out-of-sample Actual Difference:')
+print(abs(denormalize(np.copy(testing_y)) - denormalize(np.copy(out_of_sample))))
+print('Actual Testing Y')
+print(denormalize(np.copy(testing_y)))
 
 # print(denormalize(np.copy(testing_y))[-2])
 # print('Relative Change')
 # abs(denormalize(np.copy(testing_y)) - denormalize(np.copy(out_of_sample)))/denormalize(np.copy(testing_y))
-
+# testing_y = denormalize(testing_y)
+# out_of_sample = denormalize(out_of_sample)
 plt.figure(3)
 plt.scatter(testing_y, out_of_sample)
 plt.plot([0,1], [0,1])
