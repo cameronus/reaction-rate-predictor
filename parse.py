@@ -19,7 +19,8 @@ feature_file = 'features.out' # file containing features 'features_200.out'
 data_dir = 'methane-data' # directory in which MD data is stored
 xyz_dir = 'xyz' # directory in which to store 3D XYZ files
 min_occurences = 2 # minimum occurences in reaction dictionaries to be considered
-normalize_rates = True # whether to normalize logged rates between 0 and 1
+log_rates = True # whether to log rates
+normalize_rates = True # whether to normalize rates between 0 and 1
 train_test_split = 0.8 # percentage of data to be used for testing
 eliminate_dup_feats = False # ignore reactions with the same feature set
 # high_cutoff = 0.5
@@ -48,10 +49,13 @@ total_rxns = 0
 not_eligible = 0
 unique_rxn_count = 0
 
+testing_reacs = []
+
 def normalize(arr):
     arr = np.asarray(arr)
-    if normalize_rates:
+    if log_rates:
         arr = np.log10(arr)
+    if normalize_rates:
         arr -= min_rate
         arr /= (max_rate - min_rate)
     return arr
@@ -60,6 +64,7 @@ def denormalize(arr):
     if normalize_rates:
         arr *= (max_rate - min_rate)
         arr += min_rate
+    if log_rates:
         arr = np.power(10, arr)
     return arr
 
@@ -159,7 +164,7 @@ for feature in features:
             'index': total_rxns
         })
         total_rxns += 1
-        if normalize_rates:
+        if log_rates:
             logged_rate = np.log10(rate)
         else:
             logged_rate = rate
@@ -183,6 +188,7 @@ for index, data in enumerate(all_data):
     else:
         testing_x.append(data['features'])
         testing_y.append(data['rate'])
+        testing_reacs.append(data['reaction'])
         data['data_index'] = len(testing_y) - 1
         data['partition'] = 'testing'
 
@@ -332,26 +338,32 @@ print('Out-of-sample R2:')
 print(r2_score(testing_y, out_of_sample))
 print(r2_score(denormalize(np.copy(testing_y)), denormalize(np.copy(out_of_sample))))
 
+diffs = abs(testing_y - out_of_sample)
+print(testing_reacs)
+print(diffs)
+plt.figure(3)
+plt.hist(diffs, 60)
+
 # percent_error = (out_of_sample - testing_y)/testing_y * 100
 # print('Percent Error Normalized:')
 # print(percent_error)
 
-percent_error_actual = (denormalize(np.copy(out_of_sample)) - denormalize(np.copy(testing_y)))/abs(denormalize(np.copy(testing_y))) * 100
-print('Percent Error Actual:')
-print(percent_error_actual)
-print()
-print(np.average(abs(percent_error_actual)))
-print('Out-of-sample Actual Difference:')
-print(abs(denormalize(np.copy(testing_y)) - denormalize(np.copy(out_of_sample))))
-print('Actual Testing Y')
-print(denormalize(np.copy(testing_y)))
+# percent_error_actual = (denormalize(np.copy(out_of_sample)) - denormalize(np.copy(testing_y)))/abs(denormalize(np.copy(testing_y))) * 100
+# print('Percent Error Actual:')
+# print(percent_error_actual)
+# print()
+# print(np.average(abs(percent_error_actual)))
+# print('Out-of-sample Actual Difference:')
+# print(abs(denormalize(np.copy(testing_y)) - denormalize(np.copy(out_of_sample))))
+# print('Actual Testing Y')
+# print(denormalize(np.copy(testing_y)))
 
 # print(denormalize(np.copy(testing_y))[-2])
 # print('Relative Change')
 # abs(denormalize(np.copy(testing_y)) - denormalize(np.copy(out_of_sample)))/denormalize(np.copy(testing_y))
 # testing_y = denormalize(testing_y)
 # out_of_sample = denormalize(out_of_sample)
-plt.figure(3)
+plt.figure(4)
 plt.scatter(testing_y, out_of_sample)
 plt.plot([0,1], [0,1])
 plt.suptitle('Out-of-sample Test')
