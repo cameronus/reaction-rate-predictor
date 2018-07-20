@@ -3,6 +3,7 @@ from collections import Counter
 from itertools import groupby
 from sklearn.neural_network import MLPRegressor
 from sklearn import linear_model
+from sklearn import kernel_ridge
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import mean_squared_error
 from sklearn.metrics import r2_score
@@ -281,12 +282,12 @@ np.savetxt('testing_y.csv', testing_y, delimiter=',')
 
 print('> Training model')
 
-regressor = MLPRegressor( # lbfgs/adam alpha=0.001
-    hidden_layer_sizes=(16,8,), activation='relu', solver='lbfgs', alpha=0.001, batch_size='auto',
-    learning_rate='constant', learning_rate_init=0.001, power_t=0.5, max_iter=1000, shuffle=True,
-    random_state=0, tol=0.0001, verbose=False, warm_start=False, momentum=0.9, nesterovs_momentum=True,
-    early_stopping=False, validation_fraction=0.1, beta_1=0.9, beta_2=0.999, epsilon=1e-08)
-n = regressor.fit(training_x, training_y)
+# regressor = MLPRegressor( # lbfgs/adam alpha=0.001
+#     hidden_layer_sizes=(16,8,), activation='relu', solver='lbfgs', alpha=0.001, batch_size='auto',
+#     learning_rate='constant', learning_rate_init=0.001, power_t=0.5, max_iter=1000, shuffle=True,
+#     random_state=0, tol=0.0001, verbose=False, warm_start=False, momentum=0.9, nesterovs_momentum=True,
+#     early_stopping=False, validation_fraction=0.1, beta_1=0.9, beta_2=0.999, epsilon=1e-08)
+# n = regressor.fit(training_x, training_y)
 
 # regressor = MLPRegressor( # lbfgs/adam alpha=0.001
 #     hidden_layer_sizes=(13,13,13,), activation='relu', solver='adam', alpha=0.0001, batch_size='auto',
@@ -305,7 +306,10 @@ n = regressor.fit(training_x, training_y)
 # regressor = linear_model.RidgeCV(alphas=[1e-3, 1e-2, 1e-1, 1, 1e2])
 # n = regressor.fit(training_x, training_y)
 
-# regressor = svm.SVR(C=1.7, cache_size=200, coef0=0.0, degree=3, epsilon=0.1, gamma=0.00501, kernel='rbf', max_iter=-1, shrinking=True, tol=0.001, verbose=True)
+regressor = kernel_ridge.KernelRidge(alpha=1.0)
+n = regressor.fit(training_x, training_y)
+
+# regressor = svm.SVR(C=1.0, cache_size=200, coef0=0.0, degree=3, epsilon=0.1, gamma=0.00501, kernel='rbf', max_iter=-1, shrinking=True, tol=0.001, verbose=True)
 # n = regressor.fit(training_x, training_y)
 
 print('> Training complete, testing in-sample and out-of-sample')
