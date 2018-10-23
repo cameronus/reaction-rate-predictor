@@ -133,11 +133,14 @@ for feature in features:
         #     feats_split[index].insert(5, lifetimes[reaction_sides[idx]])
         # feats = np.concatenate(feats_split)
 
+        feats = np.append(feats, int(feature[8]))
+        feats = np.append(feats, int(feature[9]))
+
         path = xyz_dir + '/rxn_%d' % total_rxns
         os.makedirs(path)
 
         count = [0, 0]
-        raw_coords = feature[9:]
+        raw_coords = feature[11:] # used to be 9:
         sides = list(list(g) for k, g in groupby(raw_coords, key=lambda x: x != '----') if k)
         for s, side in enumerate(sides):
             coord = list(list(g) for k, g in groupby(side, key=lambda x: x != '') if k)
@@ -167,6 +170,8 @@ for feature in features:
         print('Reaction #%d added' % total_rxns)
         print(rxn)
         print(feats)
+        print(feature[8])
+        print(feature[9])
 
         all_data.append({
             'frame': frame,
@@ -385,7 +390,7 @@ plt.suptitle('Out-of-sample Test')
 plt.xlabel('Actual Rate')
 plt.ylabel('Predicted Rate')
 
-print()
+print('---------------------------------------------------')
 
 print('Reactions with the same features:')
 same_feats = []
@@ -403,18 +408,14 @@ for a in all_data:
             print(a['index'])
             print(b['index'])
 
-print()
+print('---------------------------------------------------')
 
 print('Problematic reactions:')
-# indices of problematic rxns in testing data
-# problematic = [0, 1, 2, 7, 8, 10, 11, 14, 15, 17, 18, 19, 25, 26, 27, 28, 30, 31, 38, 44, 46, 48, 49, 52, 56, 57, 60, 68, 69, 72, 74, 79, 83, 84, 91, 93, 96, 101, 105, 114, 115, 121, 122, 123, 131]
-# problematic = [0, 8, 30, 31, 52, 56, 74, 93, 105, 110]
-# problematic = [0, 8, 13, 18, 19, 24, 25, 26, 30, 32, 40, 48, 49, 52, 56, 58, 60, 62, 68, 72, 74, 83, 84, 91, 93, 95, 101, 105, 106, 107, 110, 114, 115, 122]
+
 problematic = []
 
-diffs = out_of_sample - testing_y
 for index, diff in enumerate(diffs):
-    if diff > 0.15:
+    if diff > 0.22:
         problematic.append(index)
 
 for d in all_data:
