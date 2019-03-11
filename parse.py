@@ -17,7 +17,7 @@ import shutil
 
 np.set_printoptions(linewidth=150, suppress=True, precision=6)
 
-feature_file = 'features.out' # file containing features 'features_200.out'
+feature_file = 'molanal.out' # file containing features
 data_dir = 'methane-data' # directory in which MD data is stored
 xyz_dir = 'xyz' # directory in which to store 3D XYZ files
 min_occurences = 2 # minimum occurences in reaction dictionaries to be considered
@@ -108,6 +108,7 @@ for f in to_delete:
 
 with open(feature_file, 'r') as file: features = [x.split('\n') for x in file.read().split('----------------------------------------') if x != '']
 for feature in features:
+    # print(feature)
     rxn = feature[2].split(': ')[1].strip()
     feats_split = [[int(y) for y in x.split(' ') if y != ''] for x in feature[4:8]]
     # feats = np.delete(feats, 8, 1)
